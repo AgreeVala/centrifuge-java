@@ -122,6 +122,23 @@ public class Subscription {
             return null;
         });
     }
+    public void publishSubscription(byte[] data, ReplyCallback<PublishResult> cb) {
+        this.client.getExecutor().submit(() -> Subscription.this.publishSynchronizedSubscription(data, cb));
+    }
+
+    private void publishSynchronizedSubscription(byte[] data, ReplyCallback<PublishResult> cb){
+        CompletableFuture<ReplyError> f = new CompletableFuture<>();
+        String uuid = UUID.randomUUID().toString();
+        this.futures.put(uuid, f);
+        if (data != null && cb != null ){
+            this.futures.remove(uuid);
+            this.client.publish(this.getChannel(), data, cb);
+        }else {
+            Throwable e = new Throwable();
+            this.futures.remove(uuid);
+            cb.onFailure(e);
+        }
+    }
 
     public void history(ReplyCallback<HistoryResult> cb) {
         this.client.getExecutor().submit(() -> Subscription.this.historySynchronized(cb));
